@@ -1,10 +1,13 @@
 package main
 
 import (
-	"Messenger v2/messenger_v2/db"
+	"context"
 	"log"
+	"messenger_v2/db"
 )
 
 func main() {
-	dbClient := db.NewDatabase(log.New(log.Writer(), "[db]", 0), "")
+	ctx, _ := context.WithCancel(context.TODO())
+	dbClient := db.NewDatabase(ctx, log.New(log.Writer(), "[db]", 0), "")
+	dbClient.Init()
 }

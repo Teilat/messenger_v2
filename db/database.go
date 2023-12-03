@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"log"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -9,6 +11,7 @@ import (
 )
 
 type Database interface {
+	Init(ctx context.Context)
 	Read()
 	Write()
 	Update()
@@ -17,11 +20,22 @@ type Database interface {
 type database struct {
 	log    *log.Logger
 	url    string
-	client interface{}
+	client *mongo.Client
 }
 
-func NewDatabase(log *log.Logger, url string) Database {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+var Collections = map[string]bool{
+	ChatCollection:    false,
+	GroupCollection:   false,
+	MessageCollection: false,
+}
+
+func NewDatabase(ctx context.Context, log *log.Logger, url string) Database {
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(url))
+	if err != nil {
+		panic(err)
+	}
+
+	err = client.Ping(ctx, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -30,6 +44,22 @@ func NewDatabase(log *log.Logger, url string) Database {
 		log:    log,
 		url:    url,
 		client: client,
+	}
+}
+
+func (d *database) Init(ctx context.Context) {
+	existingCollections, err := d.client.ListDatabaseNames(ctx, bson.D{})
+	if err != nil {
+		return
+	}
+	for _, collection := range existingCollections {
+		Collections[collection] = true
+	}
+	for s, exist := range Collections {
+		if !exist {
+			fmt.Println(s)
+			// create collection
+		}
 	}
 }
 
