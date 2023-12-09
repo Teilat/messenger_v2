@@ -1,8 +1,11 @@
 _remote_origin := $(shell git config --get remote.origin.url)
-BINARY_NAME := "messenger_v2"
-BINARY_BUILD_DATE := $(shell date +%d.%m.%Y)
+BINARY_NAME :=  $(shell echo $(_remote_origin) | awk -F/ '{print $$5}' | awk -F. '{print $$1}')
 WIN_BINARY_NAME := $(BINARY_NAME).exe
+VERSION_PATH := $(shell echo github.com/$(shell echo $(_remote_origin) | awk -Fgithub.com/ '{print $$2}')/configuration | sed "s/\/\//\//g")
+BINARY_VERSION := $(shell git describe --tags)
+BINARY_BUILD_DATE := $(shell date +%d.%m.%Y)
 BUILD_FOLDER := .build
+
 DOCKERHUB_PROFILE := "teilat"
 
 PRINTF_FORMAT := "\033[35m%-18s\033[33m %s\033[0m\n"
@@ -25,13 +28,13 @@ windows: vendor ## Build artifacts for windows
 	@printf $(PRINTF_FORMAT) BINARY_NAME: $(WIN_BINARY_NAME)
 	@printf $(PRINTF_FORMAT) BINARY_BUILD_DATE: $(BINARY_BUILD_DATE)
 	mkdir -p $(BUILD_FOLDER)/windows
-	env GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CXX=x86_64-w64-mingw32-g++ CC=x86_64-w64-mingw32-gcc  go build -ldflags "-s -w -X $(BINARY_NAME).Version=$(BINARY_VERSION) -X $(BINARY_NAME).BuildDate=$(BINARY_BUILD_DATE)" -o $(BUILD_FOLDER)/windows/$(WIN_BINARY_NAME) .
+	env GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CXX=x86_64-w64-mingw32-g++ CC=x86_64-w64-mingw32-gcc  go build -ldflags "-s -w -X $(VERSION_PATH).Version=$(BINARY_VERSION) -X $(VERSION_PATH).BuildDate=$(BINARY_BUILD_DATE)" -o $(BUILD_FOLDER)/windows/$(WIN_BINARY_NAME) .
 
 linux: vendor ## Build artifacts for linux
 	@printf $(PRINTF_FORMAT) BINARY_NAME: $(BINARY_NAME)
 	@printf $(PRINTF_FORMAT) BINARY_BUILD_DATE: $(BINARY_BUILD_DATE)
 	mkdir -p $(BUILD_FOLDER)/linux
-	env GOOS=linux GOARCH=amd64  go build -ldflags "-s -w -X $(BINARY_NAME).Version=$(BINARY_VERSION) -X $(BINARY_NAME).BuildDate=$(BINARY_BUILD_DATE)" -o $(BUILD_FOLDER)/linux/$(BINARY_NAME) .
+	env GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X $(VERSION_PATH).Version=$(BINARY_VERSION) -X $(VERSION_PATH).BuildDate=$(BINARY_BUILD_DATE)" -o $(BUILD_FOLDER)/linux/$(BINARY_NAME) .
 
 docker-build: linux ## Build artifacts for linux
 	docker build -t $(BINARY_NAME) .
